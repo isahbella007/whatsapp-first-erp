@@ -1,10 +1,10 @@
-import { CommandContext } from '../../interfaces/command.interface';
-import { ProductCondition } from '../../interfaces/inventory.interface';
-import inventoryService from '../inventory.service';
-import logger from '../../utils/logger';
-import { BaseCommand } from './base.command';
-import { parseItemQuantityPrice } from '../../utils/parser/add-command-parser';
-import AppError from '../../utils/errors/AppError';
+import { CommandContext } from '../../../interfaces/command.interface';
+import { ProductCondition } from '../../../interfaces/inventory.interface';
+import inventoryService from '../../inventory.service';
+import logger from '../../../utils/logger';
+import { BaseCommand } from '../base.command';
+import { parseItemQuantityPrice } from '../../../utils/parser/add-command-parser';
+import AppError from '../../../utils/errors/AppError';
 
 /**
  * Add product command - Adds a new product to inventory
@@ -57,20 +57,17 @@ export class AddProductCommand extends BaseCommand {
         }
         
         const response = ` ✅ Products added/updated:\n` + results.join('\n');
-        // build a single reply
-        const addedItems = productQuantities
-        .map(i => `${i.product} (${i.quantity})`)
-        .join(', ');
+        
+        // build a single reply and return all products in the inventory
+        const products = await inventoryService.getProducts(context.user._id.toString());
+        const inventoryList = inventoryService.formatInventoryList(products);
+
         await this.sendResponse(
           context.phone,
-          `${response} \n\nSend "stock" to view all.`
+          `${response} \n\n${inventoryList}`
         );
 
-        // // Send success message
-        // await this.sendResponse(
-        //   context.phone,
-        //   `✅ Product "${product.name}" has been added to your inventory.\n\nTo add stock, use: update ${product.name} [quantity]`
-        // );
+       
       } catch (error) {
         logger.error('Error adding product:', error);
         await this.sendResponse(

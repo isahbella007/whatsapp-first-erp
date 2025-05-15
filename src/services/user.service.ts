@@ -173,57 +173,28 @@ class UserService {
     return `You've made too many incorrect payment attempts. Please wait ${minutes} minutes before trying again.`;
   }
 
-  /**
-   * Get menu message for active users
-   */
-  // getMenuMessage(): string {
-  //   return `
-  //     🔹 *WhatsApp ERP System Menu* 🔹
-
-  //     1️⃣ *Inventory Management*
-  //       - Add Product: Send "add [product name]"
-  //       - Check Stock: Send "stock"
-  //       - Update Quantity: Send "update [product] [quantity]"
-
-  //     2️⃣ *Order Processing*
-  //       - New Order: Send "order [product] [quantity]"
-  //       - Order Status: Send "status [order ID]"
-  //       - Cancel Order: Send "cancel [order ID]"
-
-  //     3️⃣ *Reports*
-  //       - Daily Sales: Send "report daily"
-  //       - Weekly Sales: Send "report weekly"
-  //       - Monthly Sales: Send "report monthly"
-
-  //     4️⃣ *Customer Management*
-  //       - Add Customer: Send "customer add [name] [contact]"
-  //       - Find Customer: Send "customer find [name/contact]"
-
-  //     5️⃣ *Account Settings*
-  //       - View Profile: Send "profile"
-  //       - Update Details: Send "update profile"
-  //       - Subscription Info: Send "subscription"
-
-  //     Reply with the number or command to proceed.
-  //     `;
-  // }
-
+ 
   getMenuMessage(): string {
     return `
 👋 Hi [Business Name]! You have 28 credits left.
 
-Here’s what you can do (reply with the number or command):
+Here's what you can do (reply with the number or command):
 
 1️⃣ Add products  
-  ➤ Example: 'add zobo 10, chinchin 5'
+  ➤ Example: 'add zobo 10 1k, chinchin 5 500'
 
 2️⃣ Update stock  
   ➤ Example: 'update coke 12, fanta 8'
+  ➤ Change price: 'update zobo price 1500'
+  ➤ Both: 'update zobo 10 1200'
 
 3️⃣ View all stock  
   ➤ Just send: 'stock'
 
-4️⃣ Record sale  
+4️⃣ Delete products  
+  ➤ Example: 'delete zobo'
+
+5️⃣ Record sale  
   ➤ Example: 'order zobo 2, chinchin 1'
 
 5️⃣ Sales report  

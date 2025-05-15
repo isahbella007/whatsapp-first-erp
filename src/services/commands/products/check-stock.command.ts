@@ -1,7 +1,7 @@
-import { CommandContext } from '../../interfaces/command.interface';
-import inventoryService from '../inventory.service';
-import logger from '../../utils/logger';
-import { BaseCommand } from './base.command';
+import { CommandContext } from '../../../interfaces/command.interface';
+import inventoryService from '../../inventory.service';
+import logger from '../../../utils/logger';
+import { BaseCommand } from '../base.command';
 
 /**
  * Check stock command - Views current inventory
