@@ -19,4 +19,9 @@ export abstract class BaseCommand implements Command {
   protected async sendResponse(phone: string, message: string): Promise<void> {
     await twilioService.sendTextMessage(phone, message);
   }
+
+  // New method to get command intent
+  getIntent(): string {
+    return this.name;
+  }
 } 

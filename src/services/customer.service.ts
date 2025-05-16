@@ -42,7 +42,7 @@ class CustomerService {
         try{ 
             customer = await Customer.findOne({ 
                 business: businessId,
-                name: new RegExp(`^${customerIdOrName}$`, 'i'),
+                name: new RegExp(customerIdOrName, 'i'),
             });
         } catch (error: any) {
             customer = await Customer.findOne({ 
@@ -58,10 +58,15 @@ class CustomerService {
     }
     
     // delete a customer
-    async deleteCustomer(customerNames: string[], businessId: string): Promise<void> {
-        logger.info(`Deleting customers: ${customerNames} for business: ${businessId}`);
-        const customers = await Customer.find({ business: businessId, name: { $in: customerNames } });
-        await Customer.deleteMany({ _id: { $in: customers.map(customer => customer._id) } });
+    async deleteCustomer(customerName: string, businessId: string): Promise<void> {
+        logger.info(`Deleting customer: ${customerName} for business: ${businessId}`);
+        const customer = await Customer.findOne({ business: businessId, name: new RegExp(customerName, 'i') });
+        if(!customer){
+            throw new AppError(`Customer ${customerName} not found`, 404);
+        }
+
+        // TODO:: handle case where there are multiple customers
+        await Customer.findByIdAndDelete({_id: customer._id})
     }
 
     formatCustomerList(customers: ICustomer[]): string {

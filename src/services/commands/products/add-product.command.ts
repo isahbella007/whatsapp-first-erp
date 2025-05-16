@@ -3,14 +3,19 @@ import { ProductCondition } from '../../../interfaces/inventory.interface';
 import inventoryService from '../../inventory.service';
 import logger from '../../../utils/logger';
 import { BaseCommand } from '../base.command';
-import { parseItemQuantityPrice } from '../../../utils/parser/add-command-parser';
 import AppError from '../../../utils/errors/AppError';
+
+interface ProductParams {
+  name: string;
+  qty: number;
+  price: number;
+}
 
 /**
  * Add product command - Adds a new product to inventory
  */
 export class AddProductCommand extends BaseCommand {
-  name = 'add';
+  name = 'add_product';
   description = 'Add a new product to inventory';
   examples = ['add Smartphone XS', 'add Wireless Earbuds'];
   
@@ -21,56 +26,42 @@ export class AddProductCommand extends BaseCommand {
   
   async execute(context: CommandContext): Promise<void> {
     try {
-      const productName = context.rawCommand.replace(/^add\s+/i, '').trim();
-      
-      logger.info(`Product name: ${productName}`);
-     
+      logger.info(`You get to the add product command`);
+      // Get the pre-parsed params
+      const params = context.params as ProductParams;
+      if (!params || !params.name || !params.qty || !params.price) {
+        throw new AppError('Invalid product data: name, quantity and price are required', 400);
+      }
 
-      
+      logger.info(`Product data from params: ${JSON.stringify(params)}`);
+
       try {
         // Make sure user ID exists and is a valid string
         if (!context.user || !context.user._id) {
           throw new Error('User ID is missing');
         }
 
-        const productQuantities = parseItemQuantityPrice(productName);
-        logger.info(`Product quantities: ${JSON.stringify(productQuantities)}`);
-
         // Create the product
-        for(const {product, quantity, price} of productQuantities){ 
-          await inventoryService.addProduct(
-            context.user._id.toString(),
-            {
-              name: product,
-              quantity: quantity,
-              description: `Description for ${product}`,
-              sku: `SKU-${Date.now()}`,
-              category: 'General',
-              price: price,
-              // costPrice: price,
-              condition: ProductCondition.NEW,
-            }
-          )
-
-        }
-        
-        // build a single reply and return all products in the inventory
-        const products = await inventoryService.getProducts(context.user._id.toString());
-        const inventoryList = inventoryService.formatInventoryList(products);
-
-        await this.sendResponse(
-          context.phone,
-          `${inventoryList}`
+        await inventoryService.addProduct(
+          context.user._id.toString(),
+          {
+            name: params.name,
+            quantity: params.qty,
+            description: `Description for ${params.name}`,
+            sku: `SKU-${Date.now()}`,
+            category: 'General',
+            price: params.price,
+            condition: ProductCondition.NEW,
+          }
         );
-
-       
+        
       } catch (error) {
         logger.error('Error adding product:', error);
         await this.sendResponse(
           context.phone,
           error instanceof AppError 
-          ? error.message
-          :"Format error: Please use 'add product-name quantity price' (e.g. add zobo 10 150)"
+            ? error.message
+            : "There was an error processing your request. Please try again later."
         );
       }
     } catch (error) {

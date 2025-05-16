@@ -5,7 +5,7 @@ import AppError from '../utils/errors/AppError';
 import { WhatsAppMessageType } from '../interfaces/whatsapp.interface';
 import userService from './user.service';
 import receiptService from './receipt.service';
-import commandService from './command.service';
+import { messageHandlerService } from './message-handler.service';
 
 /**
  * Twilio Service for WhatsApp messaging - focuses only on message transmission and webhook handling
@@ -206,7 +206,8 @@ class TwilioService {
       // If user exists, check their subscription status
       if (userData.subscription_status === 'active') {
         // User has an active subscription, delegate to command service
-        await commandService.processCommand(phone, message, userData);
+        // await commandService.processCommand(phone, message, userData);
+        await messageHandlerService.handleMessage(phone, message, userData);
       } else if (userData.subscription_status === 'pending') {
         // User needs to complete payment
         await this.sendTextMessage(phone, userService.getPaymentReminderMessage());

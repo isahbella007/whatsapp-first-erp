@@ -8,12 +8,11 @@ import rateLimit from 'express-rate-limit';
 import { errorHandler } from './utils/errors/errorHandler';
 import logger from './utils/logger';
 import config from './config';
-
-// Import routes
-import whatsappRoutes from './routes/whatsapp.routes';
+import { commandRegistryService } from './services/command-registry.service';
 
 // Initialize Express app
 const app: Application = express();
+
 
 // Security HTTP headers
 app.use(helmet());
@@ -60,11 +59,11 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
-// API Routes
-app.use('/api/whatsapp', whatsappRoutes);
-// app.use('/api/users', userRoutes);
-// app.use('/api/payments', paymentRoutes);
-// app.use('/api/inventory', inventoryRoutes);
+
+// Initialize command registry
+commandRegistryService.registerCommands();
+logger.info('Command registry initialized');
+
 
 // Add a webhook route specifically for Twilio
 app.post('/webhook/twilio', express.urlencoded({ extended: true }), async (req: Request, res: Response, next: NextFunction) => {
@@ -103,5 +102,11 @@ app.use((req: Request, res: Response) => {
 
 // Global error handler
 app.use(errorHandler);
+
+// Start server
+const PORT = config.server.port || 3000;
+app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`);
+});
 
 export default app;

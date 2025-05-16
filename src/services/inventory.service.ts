@@ -120,7 +120,7 @@ class InventoryService {
     } catch (e) {
       // If not a valid ID, search by name
       product = await Inventory.findOne({
-        name: new RegExp(`^${productIdOrName}$`, 'i'), // Case-insensitive exact match
+        name: new RegExp(productIdOrName, 'i'), // Case-insensitive partial match
         user: userId,
       });
     }
@@ -129,6 +129,7 @@ class InventoryService {
       throw new AppError(`Product ${productIdOrName} not found`, 404);
     }
 
+    //TODO: handle the case where multiple products are found
     await Inventory.findByIdAndDelete(product._id);
     logger.info(`Deleted product: ${product.name} for user: ${userId}`);
   }
@@ -174,23 +175,56 @@ class InventoryService {
     }
 
     let result = `📦 *Current Inventory* 📦\n\n`;
+    
+    // Calculate total inventory value
+    const totalValue = products.reduce((sum, product) => sum + (product.quantity * product.price), 0);
+    
+    // Group products by category
+    const productsByCategory = products.reduce((acc, product) => {
+        const category = product.category || 'General';
+        if (!acc[category]) acc[category] = [];
+        acc[category].push(product);
+        return acc;
+    }, {} as Record<string, IInventory[]>);
 
-    products.forEach((product, index) => {
-        // Add a line break before each product (except the first) for better separation
-        if (index > 0) {
-            result += `\n`;
-        }
+    // Add total inventory value
+    result += `💰 *Total Inventory Value:* ₦${totalValue.toLocaleString()}\n\n`;
+
+    // Process each category
+    Object.entries(productsByCategory).forEach(([category, categoryProducts]) => {
+        result += `📋 *${category}*\n`;
         
-        // Use bold for the product name and include the index
-        result += `${index + 1}. *${product.name}*\n`; 
+        categoryProducts.forEach((product, index) => {
+            // Add a line break before each product (except the first) for better separation
+            if (index > 0) {
+                result += `\n`;
+            }
+            
+            // Use bold for the product name and include the index
+            result += `${index + 1}. *${product.name}*\n`; 
+            
+            // Put quantity and price on separate lines with emojis for clarity and add indentation
+            result += `   📊 Quantity: ${product.quantity} units\n`; 
+            result += `   💰 Price: ₦${product.price.toLocaleString()}\n`;
+            
+            // Add low stock warning if quantity is below 5
+            if (product.quantity < 5) {
+                result += `   ⚠️ *Low Stock Warning*\n`;
+            }
+        });
         
-        // Put quantity and price on separate lines with emojis for clarity and add indentation
-        result += `   📊 Quantity: ${product.quantity} units\n`; 
-        result += `   💰 Price: ₦${product.price.toLocaleString()}\n`; 
+        result += `\n`;
     });
 
+    // Add quick action suggestions
+    result += `\n💡 *Quick Actions:*\n`;
+    result += `• Update stock: 'update [product] [qty]'\n`;
+    result += `• Update price: 'update [product] price [price]'\n`;
+    result += `• Add product: 'add [product] [qty] [price]'\n`;
+    result += `• Delete product: 'delete [product]'\n`;
+
     return result;
-}
+  }
 
   /**
    * Generate a mock inventory response for simulation

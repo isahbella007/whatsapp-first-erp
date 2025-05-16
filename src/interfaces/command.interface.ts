@@ -10,6 +10,8 @@ export interface CommandContext {
   userData: IRedisUserData;
   args: string[];
   rawCommand: string;
+  params?: Record<string, any>;
+  intent?: string;
 }
 
 /**
