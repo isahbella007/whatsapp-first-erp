@@ -201,8 +201,8 @@ Here's what you can do (reply with the number or command):
   ➤ Example: 'report daily'
   
 6️⃣ Customers  
-  ➤ 'customer add Bisi 0803xxxx'  
-  ➤ 'customer find Bisi'  
+  ➤ 'customer add [customer name] [optional: phone [phone number]] [optional: tags [tag1,tag2,...]]'  
+  ➤ 'customer find [customer name/contact]'  
 
 💡 Tip: You can enter multiple items in one message to save credits.
           `

@@ -36,7 +36,6 @@ export class AddProductCommand extends BaseCommand {
         const productQuantities = parseItemQuantityPrice(productName);
         logger.info(`Product quantities: ${JSON.stringify(productQuantities)}`);
 
-        const results: string[] = [];
         // Create the product
         for(const {product, quantity, price} of productQuantities){ 
           await inventoryService.addProduct(
@@ -53,10 +52,7 @@ export class AddProductCommand extends BaseCommand {
             }
           )
 
-          results.push(`✅ ${product} (${quantity} units @ ₦${price.toLocaleString()})`);
         }
-        
-        const response = ` ✅ Products added/updated:\n` + results.join('\n');
         
         // build a single reply and return all products in the inventory
         const products = await inventoryService.getProducts(context.user._id.toString());
@@ -64,7 +60,7 @@ export class AddProductCommand extends BaseCommand {
 
         await this.sendResponse(
           context.phone,
-          `${response} \n\n${inventoryList}`
+          `${inventoryList}`
         );
 
        

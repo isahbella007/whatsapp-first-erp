@@ -28,6 +28,7 @@ const envsSchema = Joi.object()
     DEFAULT_MESSAGING_PROVIDER: Joi.string().description('default messaging provider').default('twilio').optional(),
     LOG_LEVEL: Joi.string().description('log level').default('info').optional(),
     LOG_FORMAT: Joi.string().description('log format').default('combined').optional(),
+    GEMINI_API_KEY: Joi.string().description('gemini api key').required(),
   })
   .unknown();
 
@@ -103,6 +104,11 @@ const config = {
   logging: {
     level: envs.LOG_LEVEL,
     format: envs.LOG_FORMAT,
+  },
+
+  // Gemini API configuration
+  gemini: {
+    apiKey: envs.GEMINI_API_KEY,
   },
 };
 

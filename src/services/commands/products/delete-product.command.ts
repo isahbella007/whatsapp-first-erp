@@ -21,9 +21,8 @@ export class DeleteProductCommand extends BaseCommand {
   
   matches(command: string): boolean {
     const normalized = command.toLowerCase().trim();
-    // Match any valid delete command pattern - either starting with delete or containing multiple delete commands
-    return normalized.startsWith('delete ') || 
-           /\bdelete\s+\w+/.test(normalized);
+    // Only match commands that start with 'delete ' and don't contain 'customer delete'
+    return normalized.startsWith('delete ') && !normalized.includes('customer delete');
   }
   
   async execute(context: CommandContext): Promise<void> {

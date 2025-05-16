@@ -12,9 +12,12 @@ import { CheckStockCommand } from './commands/products/check-stock.command';
 import { UpdateQuantityCommand } from './commands/products/update-quantity.command';
 import { OrderCategoryCommand } from './commands/order-category.command';
 import { ReportCategoryCommand } from './commands/report-category.command';
-import { CustomerCategoryCommand } from './commands/customer-category.command';
 import { AccountCategoryCommand } from './commands/account-category.command';
 import { DeleteProductCommand } from './commands/products/delete-product.command';
+import { AddCustomerCommand } from './commands/customers/add-customer.command';
+import { GetAllCustomerCommand } from './commands/customers/get-all-customer.command';
+import { GetCustomerCommand } from './commands/customers/get-customer.command';
+import { DeleteCustomerCommand } from './commands/customers/delete-customer.command';
 /**
  * Command registry implementation for managing all available commands
  */
@@ -24,14 +27,25 @@ class CommandRegistryImpl implements CommandRegistry {
   constructor() {
     // Register all commands
     this.registerCommand(new MenuCommand());
+    // Inventory commands
     this.registerCommand(new AddProductCommand());
     this.registerCommand(new CheckStockCommand());
     this.registerCommand(new UpdateQuantityCommand());
     this.registerCommand(new DeleteProductCommand());
+
+    // Customer commands
+    this.registerCommand(new AddCustomerCommand());
+    this.registerCommand(new GetAllCustomerCommand());
+    this.registerCommand(new GetCustomerCommand());
+    this.registerCommand(new DeleteCustomerCommand());
+
+    // Order commands
     this.registerCommand(new OrderCategoryCommand());
+    // Report commands
     this.registerCommand(new ReportCategoryCommand());
-    this.registerCommand(new CustomerCategoryCommand());
-    this.registerCommand(new AccountCategoryCommand());
+    
+    // Account commands
+    this.registerCommand(new AccountCategoryCommand()); 
   }
   
   /**
