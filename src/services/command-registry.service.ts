@@ -10,6 +10,7 @@ import { OrderCategoryCommand } from './commands/order-category.command';
 import logger from '../utils/logger';
 import { DeleteCustomerCommand } from './commands/customers/delete-customer.command';
 import { GetCustomerCommand } from './commands/customers/get-customer.command';
+import { RecordSaleCommand } from './commands/sales/record-sale.command';
 
 export class CommandRegistryService {
   private static instance: CommandRegistryService;
@@ -37,7 +38,10 @@ export class CommandRegistryService {
       new DeleteCustomerCommand(),
       new GetCustomerCommand(),
       new MenuCommand(),
-      new OrderCategoryCommand()
+      new OrderCategoryCommand(),
+
+      // all sale commands
+      new RecordSaleCommand()
     ];
 
     // Register each command with the router

@@ -19,18 +19,14 @@ export class AddProductCommand extends BaseCommand {
   description = 'Add a new product to inventory';
   examples = ['add Smartphone XS', 'add Wireless Earbuds'];
   
-  matches(command: string): boolean {
-    const normalized = command.toLowerCase().trim();
-    return normalized.startsWith('add ') && normalized.length > 4;
-  }
   
   async execute(context: CommandContext): Promise<void> {
     try {
       logger.info(`You get to the add product command`);
       // Get the pre-parsed params
       const params = context.params as ProductParams;
-      if (!params || !params.name || !params.qty || !params.price) {
-        throw new AppError('Invalid product data: name, quantity and price are required', 400);
+      if (!params || !params.name || !params.price) {
+        throw new AppError('Invalid product data: name and price are required', 400);
       }
 
       logger.info(`Product data from params: ${JSON.stringify(params)}`);

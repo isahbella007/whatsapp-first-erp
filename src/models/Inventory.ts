@@ -36,7 +36,7 @@ const InventorySchema = new Schema<IInventory>(
     },
     quantity: {
       type: Number,
-      required: [true, 'Quantity is required'],
+      required: [false, 'Quantity is not required'],
       min: [0, 'Quantity cannot be negative'],
       default: 0,
     },

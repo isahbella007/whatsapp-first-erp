@@ -39,6 +39,7 @@ export class CommandRouterService {
           intent: cmd.intent
         };
 
+        logger.info(`Executing command: ${cmd.intent}`);
         // Execute the command
         await command.execute(commandContext);
         responses.push(`Successfully executed ${cmd.intent}`);

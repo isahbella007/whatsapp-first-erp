@@ -16,6 +16,16 @@ class CustomerService {
                 throw new AppError('User not found', 404);
             }
 
+            // check if the customer already exists
+            const existingCustomer = await Customer.findOne({ 
+                business: businessId,
+                name: new RegExp(customerData?.name || '', 'i'),
+            });
+
+            if(existingCustomer){
+                throw new AppError(`Customer ${customerData.name} already exists`, 400);
+            }
+
             // create the customer
             const customer = await Customer.create({ 
                 business: businessId,
@@ -65,7 +75,7 @@ class CustomerService {
             throw new AppError(`Customer ${customerName} not found`, 404);
         }
 
-        // TODO:: handle case where there are multiple customers
+        // TODO:: handle case where there are multiple customers with the same name. The aim here is to tell the user that they should select the customer they want to delete
         await Customer.findByIdAndDelete({_id: customer._id})
     }
 

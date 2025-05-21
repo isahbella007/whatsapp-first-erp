@@ -102,6 +102,19 @@ class InventoryService {
     return await Inventory.find({ user: userId });
   }
 
+  async getSpecificProduct(userId: string, productId: string): Promise<IInventory> { 
+    const product = await Inventory.findOne({
+      _id: productId,
+      user: userId
+    })
+
+    if(!product){ 
+      throw new AppError(`Product ${productId} not found`, 404);
+    }
+
+    return product;
+  }
+
   /**
    * Delete a product from the inventory
    * @param productIdOrName Product ID or name

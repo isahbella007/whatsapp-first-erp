@@ -33,7 +33,7 @@ export class MessageHandlerService {
     // Parse the message into commands
     const parseResult = await commandParserService.parseCommands(message);
     
-    // logger.info(`Parsed commands => in the message handler service: ${JSON.stringify(parseResult)}`);
+    logger.info(`User intention: ${JSON.stringify(parseResult)}`);
     if (!parseResult.success || !parseResult.data) {
       await twilioService.sendTextMessage(phone, parseResult.error || 'Failed to parse commands');
       return;
