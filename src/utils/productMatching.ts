@@ -1,10 +1,11 @@
 import { getGeminiService } from '../services/LLM/gemini';
 import inventoryService from '../services/inventory.service';
-import { IInventory } from '../interfaces/inventory.interface';
+import { IInventory, IInventoryV2 } from '../interfaces/inventory.interface';
 import logger from './logger';
+import newInventoryService from '../services/newInventory.service';
 
 interface ProductMatch {
-  product: IInventory;
+  product: IInventoryV2;
   confidence: number;
   matchedTerm: string;
 }
@@ -29,7 +30,7 @@ export async function findSimilarProducts(
 ): Promise<ProductMatch[]> {
   try {
     // Get all products for the user
-    const allProducts = await inventoryService.getProducts(userId);
+    const allProducts = await newInventoryService.getProducts(userId);
 
     logger.info(`Searching for matches for "${searchText}" in ${allProducts.length} products`);
     if (allProducts.length === 0) {
@@ -156,7 +157,7 @@ Example:`;
 export async function getBestProductMatch(
   userId: string,
   searchText: string
-): Promise<{ product: IInventory; confidence: number } | null> {
+): Promise<{ product: IInventoryV2; confidence: number } | null> {
   const matches = await findSimilarProducts(userId, searchText);
 
   logger.info(`Best match search for "${searchText}": ${JSON.stringify(matches)}`);

@@ -38,47 +38,47 @@ export class RecordSaleCommand extends BaseCommand {
             throw new Error('User ID is missing');
         }
 
-        const result = await salesService.recordSale(params, context.user._id.toString());
-        logger.info(`Sale recording result: ${JSON.stringify(result)}`);
+        // const result = await salesService.recordSale(params, context.user._id.toString());
+        // logger.info(`Sale recording result: ${JSON.stringify(result)}`);
 
-        // Send appropriate response based on the result
-        if (result.success) {
-            // Format success message
-            let responseMessage = result.message;
+        // // Send appropriate response based on the result
+        // if (result.success) {
+        //     // Format success message
+        //     let responseMessage = result.message;
 
-            // If there are incomplete actions, add a follow-up message
-            if (result.incompleteActions && result.incompleteActions.length > 0) {
-                responseMessage += "\n\nWould you like to provide the missing information for the remaining items?";
-            }
+        //     // If there are incomplete actions, add a follow-up message
+        //     if (result.incompleteActions && result.incompleteActions.length > 0) {
+        //         responseMessage += "\n\nWould you like to provide the missing information for the remaining items?";
+        //     }
 
-            await this.sendResponse(context.phone, responseMessage);
-        } else {
-            // Format error message for failed sale
-            let errorMessage = "I couldn't record the sale because:\n";
+        //     await this.sendResponse(context.phone, responseMessage);
+        // } else {
+        //     // Format error message for failed sale
+        //     let errorMessage = "I couldn't record the sale because:\n";
             
-            if (result.incompleteActions) {
-                result.incompleteActions.forEach(action => {
-                    errorMessage += `- ${action.productName}: ${action.reason}\n`;
-                });
+        //     if (result.incompleteActions) {
+        //         result.incompleteActions.forEach(action => {
+        //             errorMessage += `- ${action.productName}: ${action.reason}\n`;
+        //         });
 
-                // Add helpful suggestions for price-related issues
-                const priceIssues = result.incompleteActions.filter(a => 
-                    a.reason.includes("Price not provided") || 
-                    a.reason.includes("Invalid price")
-                );
+        //         // Add helpful suggestions for price-related issues
+        //         const priceIssues = result.incompleteActions.filter(a => 
+        //             a.reason.includes("Price not provided") || 
+        //             a.reason.includes("Invalid price")
+        //         );
                 
-                if (priceIssues.length > 0) {
-                    errorMessage += "\nTo fix this, please provide prices for these items. For example:\n";
-                    errorMessage += priceIssues.map(item => 
-                        `"${item.productName} was [price] per unit"`
-                    ).join(" and ");
-                }
-            } else {
-                errorMessage = result.message;
-            }
+        //         if (priceIssues.length > 0) {
+        //             errorMessage += "\nTo fix this, please provide prices for these items. For example:\n";
+        //             errorMessage += priceIssues.map(item => 
+        //                 `"${item.productName} was [price] per unit"`
+        //             ).join(" and ");
+        //         }
+        //     } else {
+        //         errorMessage = result.message;
+        //     }
 
-            await this.sendResponse(context.phone, errorMessage);
-        }
+        //     await this.sendResponse(context.phone, errorMessage);
+        // }
 
     } catch (error) {
         logger.error(`Error in record sale command: ${error}`);

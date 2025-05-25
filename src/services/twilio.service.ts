@@ -205,6 +205,7 @@ class TwilioService {
 
       // If user exists, check their subscription status
       if (userData.subscription_status === 'active') {
+        logger.info('user has an active subscription')
         // User has an active subscription, delegate to command service
         // await commandService.processCommand(phone, message, userData);
         await messageHandlerService.handleMessage(phone, message, userData);

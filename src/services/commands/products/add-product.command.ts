@@ -4,11 +4,20 @@ import inventoryService from '../../inventory.service';
 import logger from '../../../utils/logger';
 import { BaseCommand } from '../base.command';
 import AppError from '../../../utils/errors/AppError';
+import newInventoryService from '../../newInventory.service';
 
-interface ProductParams {
-  name: string;
-  qty: number;
-  price: number;
+export interface ProductParams {
+  productName: string, 
+  price?: number,
+  priceUnitOfMeasure?: string, 
+  initialQuantity?: number,
+  initialQuantityUnitOfMeasure?: string, 
+  conversionFactorProvided?: { 
+    unit1: string, 
+    unit1Quantity: number,
+    unit2: string,
+    unit2Quantity: number
+  }
 }
 
 /**
@@ -19,53 +28,16 @@ export class AddProductCommand extends BaseCommand {
   description = 'Add a new product to inventory';
   examples = ['add Smartphone XS', 'add Wireless Earbuds'];
   
-  
   async execute(context: CommandContext): Promise<void> {
-    try {
-      logger.info(`You get to the add product command`);
-      // Get the pre-parsed params
-      const params = context.params as ProductParams;
-      if (!params || !params.name || !params.price) {
-        throw new AppError('Invalid product data: name and price are required', 400);
+    try{ 
+      
+      if(!context.user || !context.user._id){ 
+        throw new AppError('The user id is required. Contact support', 400)
       }
-
-      logger.info(`Product data from params: ${JSON.stringify(params)}`);
-
-      try {
-        // Make sure user ID exists and is a valid string
-        if (!context.user || !context.user._id) {
-          throw new Error('User ID is missing');
-        }
-
-        // Create the product
-        await inventoryService.addProduct(
-          context.user._id.toString(),
-          {
-            name: params.name,
-            quantity: params.qty,
-            description: `Description for ${params.name}`,
-            sku: `SKU-${Date.now()}`,
-            category: 'General',
-            price: params.price,
-            condition: ProductCondition.NEW,
-          }
-        );
-        
-      } catch (error) {
-        logger.error('Error adding product:', error);
-        await this.sendResponse(
-          context.phone,
-          error instanceof AppError 
-            ? error.message
-            : "There was an error processing your request. Please try again later."
-        );
-      }
-    } catch (error) {
-      logger.error('Error in AddProductCommand:', error);
-      await this.sendResponse(
-        context.phone,
-        "There was an error processing your request. Please try again later."
-      );
+      const params = context.params as ProductParams
+      await newInventoryService.addProduct(context, params)
+    }catch(error){ 
+      logger.error('Something went wrong when adding a stock')
     }
   }
 } 

@@ -3,6 +3,7 @@ import { IRedisUserData } from '../interfaces/redis.interface';
 import logger from '../utils/logger';
 import { commandParserService } from './command-parser.service';
 import { commandRouterService } from './command-router.service';
+import { responseGeneratorService } from './response-generator.service';
 import twilioService from './twilio.service';
 import userService from './user.service';
 
@@ -46,15 +47,18 @@ export class MessageHandlerService {
       userData,
       args: [],
       rawCommand: message,
-      params: {}
+      params: {},
+      clarificationRequests: []
     };
 
     // Route and execute commands
     const responses = await commandRouterService.routeCommands(parseResult.data, context);
 
-    // Send consolidated response
-    // const response = responses.join('\n');
-    // await twilioService.sendTextMessage(phone, response);
+    // Generate and send consolidated response
+    const responseMessage = responseGeneratorService.generateConsolidatedResponse(context);
+
+    logger.error('The final response is', responseMessage)
+    await twilioService.sendTextMessage(phone, responseMessage);
   }
 }
 

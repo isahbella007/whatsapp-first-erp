@@ -37,9 +37,21 @@ export class CommandParserService {
             type: 'object',
             properties: {
               // Product params
-              name: { type: 'string' },
-              qty: { type: 'number', nullable: true },
-              price: { type: 'number' },
+              productName: { type: 'string' },
+              price: { type: 'number', nullable: true },
+              priceUnitOfMeasure: { type: 'string', nullable: true },
+              initialQuantity: { type: 'number', nullable: true },
+              initialQuantityUnitOfMeasure: { type: 'string', nullable: true },
+              conversionFactorProvided: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  unit1: { type: 'string' },
+                  unit1Quantity: { type: 'number' },
+                  unit2: { type: 'string' },
+                  unit2Quantity: { type: 'number' }
+                }
+              },
               // Customer params
               phone: { type: 'string' },
               tags: { 
@@ -96,7 +108,17 @@ Your task is to analyze incoming messages and extract structured commands with t
 For each command, follow these rules:
 
 1. Product Commands:
-   - For "add_product": Extract name, quantity, and price
+   - For "add_product": 
+     * Extract productName (required, e.g., "Zobo Delight", "Fanta")
+     * Extract price if mentioned (e.g., "1000 naira", "25k")
+     * Extract priceUnitOfMeasure if specified (e.g., "bottle", "crate", "kg")
+     * Extract initialQuantity if provided (e.g., "5", "10")
+     * Extract initialQuantityUnitOfMeasure if specified (e.g., "crates", "cans", "ctn")
+     * Extract conversionFactorProvided if mentioned (e.g., "a crate is 12 bottles")
+       - unit1: first unit (e.g., "crate")
+       - unit1Quantity: quantity of first unit (e.g., 1)
+       - unit2: second unit (e.g., "bottle")
+       - unit2Quantity: quantity of second unit (e.g., 12)
    - For "delete_product": Extract product name
    - For "update_product": 
      * Extract product name
@@ -158,26 +180,59 @@ Your output must be a valid JSON array of command objects, each with an intent a
 
     const examples = [
       {
-        input: 'add beans 5 10. customer add John Doe +2349012345678 is flirty and likes cold drinks, customer delete Grace',
+        input: 'I added a new product to my store, Zobo Delight. I am selling a bottle for 1000 naira',
         output: [
           {
             intent: 'add_product',
-            params: { name: 'beans', qty: 5, price: 10 }
-          },
-          {
-            intent: 'add_customer',
             params: { 
-              name: 'John Doe',
-              phone: '+2349012345678',
-              tags: ['is flirty', 'likes cold drinks']
+              productName: 'Zobo Delight',
+              price: 1000,
+              priceUnitOfMeasure: 'bottle',
+              initialQuantity: null,
+              initialQuantityUnitOfMeasure: null,
+              conversionFactorProvided: null
             }
-          },
-          {
-            intent: 'delete_customer',
-            params: { name: 'Grace' }
           }
         ]
       },
+      {
+        input: 'Add 5 crates of Fanta at 25k',
+        output: [
+          {
+            intent: 'add_product',
+            params: { 
+              productName: 'Fanta',
+              price: 5000,
+              priceUnitOfMeasure: 'crate',
+              initialQuantity: 5,
+              initialQuantityUnitOfMeasure: 'crates',
+              conversionFactorProvided: null
+            }
+          }
+        ]
+      },
+      {
+        input: 'I bought half a carton of spaghetti at 10k. Half carton is 30 packs',
+        output: [
+          {
+            intent: 'add_product',
+            params: { 
+              productName: 'spaghetti',
+              price: 10000,
+              priceUnitOfMeasure: 'half carton',
+              initialQuantity: 0.5,
+              initialQuantityUnitOfMeasure: 'carton',
+              conversionFactorProvided: {
+                unit1: 'carton',
+                unit1Quantity: 1,
+                unit2: 'pack',
+                unit2Quantity: 60 // NLP should derive 1 carton = 60 packs from "half carton is 30 packs"
+              }
+            }
+          }
+        ]
+      },
+      
       {
         input: 'update zobo 15 1500',
         output: [
