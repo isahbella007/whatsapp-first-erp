@@ -35,9 +35,24 @@ export class AddProductCommand extends BaseCommand {
         throw new AppError('The user id is required. Contact support', 400)
       }
       const params = context.params as ProductParams
-      await newInventoryService.addProduct(context, params)
+      const response = await newInventoryService.addProduct(context, params)
+      
+      // Add response to context for message handler
+      if (!context.responses) {
+        context.responses = [];
+      }
+      context.responses.push(response);
+
+      logger.warn(`--------------End of Add Product --------- ${JSON.stringify(response)}`)
     }catch(error){ 
       logger.error('Something went wrong when adding a stock')
+      if (!context.responses) {
+        context.responses = [];
+      }
+      context.responses.push({
+        success: false,
+        message: 'Failed to add product. Please try again.'
+      });
     }
   }
 } 

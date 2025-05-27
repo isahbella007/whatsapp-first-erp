@@ -22,6 +22,12 @@ export interface CommandContext {
   params?: Record<string, any>;
   intent?: string;
   clarificationRequests?: ClarificationRequest[];
+  responses?: Array<{
+    success: boolean;
+    needsClarification?: boolean;
+    message: string;
+    product?: any;
+  }>;
 }
 
 /**
@@ -31,7 +37,7 @@ export interface Command {
   name: string;
   description: string;
   examples: string[];
-  execute(context: CommandContext): Promise<void>;
+  execute(context: CommandContext): Promise<any>;
   matches(command: string): boolean;
 }
 

@@ -1,7 +1,13 @@
-import { Schema, model } from 'mongoose';
+import mongoose, { Schema, model } from 'mongoose';
 import { IInventoryV2 } from '../interfaces/inventory.interface';
 
 const InventorySchema = new Schema({
+  user: {
+    type: mongoose.Types.ObjectId, 
+    ref: 'User', 
+    required: true
+  },
+  
   name: {
     type: String,
     required: true,

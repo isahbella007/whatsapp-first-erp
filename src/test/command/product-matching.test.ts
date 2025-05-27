@@ -6,24 +6,23 @@ const mockInventory = [
     {
         _id: new mongoose.Types.ObjectId("682e2076afd2ecfc0ff6fe6b"),
         user: new mongoose.Types.ObjectId("682447c1a8185e370ac224e0"),
-        name: "zobo delight",
+        name: "indomie",
         price: 1000
     },
     {
         _id: new mongoose.Types.ObjectId("682e2076afd2ecfc0ff6fe6c"),
         user: new mongoose.Types.ObjectId("682447c1a8185e370ac224e0"),
-        name: "Red Bag",
+        name: "carton of indomie",
         price: 10000
     }
 ];
 
 // Mock the inventory service
-import inventoryService from "../../services/inventory.service";
-(inventoryService.getProducts as any) = async () => mockInventory;
+import newInventoryService from "../../services/newInventory.service";
+(newInventoryService.getProducts as any) = async () => mockInventory;
 
 const testCases = [
-    "robo delight",
-    "ref bah"
+    "cartons of indomie"
 ];
 
 async function runTests() {

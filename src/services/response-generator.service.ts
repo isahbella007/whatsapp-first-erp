@@ -15,15 +15,32 @@ export class ResponseGeneratorService {
 
   generateConsolidatedResponse(context: CommandContext): string {
     try {
+      logger.error(context.responses)
       let responseMessage = "I've processed your message.";
       
-      logger.info('Clarification context is', context.clarificationRequests)
+      // Handle responses
+      if (context.responses && context.responses.length > 0) {
+        const successResponses = context.responses.filter(r => r.success);
+        const errorResponses = context.responses.filter(r => !r.success);
+        
+        if (successResponses.length > 0) {
+          responseMessage = successResponses.map(r => r.message).join('\n');
+        }
+        
+        if (errorResponses.length > 0) {
+          responseMessage += "\n\nHowever, there were some issues:\n" + 
+            errorResponses.map(r => r.message).join('\n');
+        }
+
+      }
+      
+      // Handle clarification requests
       if (context.clarificationRequests && context.clarificationRequests.length > 0) {
-        responseMessage += "\n\nHowever, I need some clarification:\n" + 
-          context.clarificationRequests.join('\n');
+        responseMessage += "\n\nI need some clarification:\n" + 
+          context.clarificationRequests.map(r => r.prompt).join('\n');
       }
 
-      logger.info(`Generated consolidated response: ${responseMessage}`);
+      // logger.info(`Generated consolidated response: ${responseMessage}`);
       return responseMessage;
     } catch (error) {
       logger.error('Error generating consolidated response:', error);

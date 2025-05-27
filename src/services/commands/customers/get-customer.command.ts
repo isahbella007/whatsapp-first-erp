@@ -26,12 +26,15 @@ export class GetCustomerCommand extends BaseCommand {
         throw new AppError('User ID is missing', 400);
       }
 
+      if(!context.responses){ 
+        context.responses = []
+      }
       const { viewType, name, searchTerm } = context.params || {};
 
       if (!viewType) {
-        await this.sendResponse(
-          context.phone,
-          '❌ Invalid command format. Please use one of the following:\n\n' +
+        context.responses.push({ 
+          success: false, 
+          message: '❌ Invalid command format. Please use one of the following:\n\n' +
           '1️⃣ View all customers:\n' +
           '   ➤ customers\n' +
           '   ➤ view customers\n\n' +
@@ -41,7 +44,8 @@ export class GetCustomerCommand extends BaseCommand {
           '3️⃣ Search customers:\n' +
           '   ➤ search customer [term]\n' +
           '   ➤ find customer [term]'
-        );
+        })
+        
         return;
       }
 
@@ -51,8 +55,13 @@ export class GetCustomerCommand extends BaseCommand {
         case 'all':
           const allCustomers = await customerService.getCustomers(context.user._id.toString());
           if (!allCustomers.length) {
-            response = '📝 No customers found.';
+            context.responses.push({
+              success: true,
+              message: '📝 No customers found.'
+            })
+            return;
           } else {
+            // put the customers in the context
             response = '📋 *Customer List:*\n\n';
             allCustomers.forEach((customer: ICustomer, index: number) => {
               response += `${index + 1}. ${customer.name}\n`;
@@ -65,15 +74,19 @@ export class GetCustomerCommand extends BaseCommand {
 
         case 'single':
           if (!name) {
-            await this.sendResponse(
-              context.phone,
-              '❌ Please specify the customer name to view.'
-            );
+            context.responses.push({
+              success: false,
+              message: '❌ Please specify the customer name to view.'
+            })
             return;
           }
           const customer = await customerService.getSpecificCustomer(name, context.user._id.toString());
           if (!customer) {
-            response = `❌ Customer "${name}" not found.`;
+            context.responses.push({
+              success: false,
+              message: `❌ Customer "${name}" not found.`
+            })
+            return;
           } else {
             response = `👤 *Customer Details:*\n\n`;
             response += `Name: ${customer.name}\n`;
@@ -85,10 +98,10 @@ export class GetCustomerCommand extends BaseCommand {
         case 'search':
           const searchNames = context.params?.searchNames;
           if (!searchNames?.length) {
-            await this.sendResponse(
-              context.phone,
-              '❌ Please specify at least one name to search for.'
-            );
+            context.responses.push({
+              success: false,
+              message: '❌ Please specify at least one name to search for.'
+            })
             return;
           }
 
@@ -123,7 +136,11 @@ export class GetCustomerCommand extends BaseCommand {
           const matchedResults = Array.from(matchedCustomers);
 
           if (!matchedResults.length) {
-            response = `❌ No customers found matching "${normalizedSearchNames.join(', ')}".`;
+            context.responses.push({
+              success: false,
+              message: `❌ No customers found matching "${normalizedSearchNames.join(', ')}".`
+            })
+            return;
           } else {
             response = `🔍 *Search Results:*\n\n`;
             matchedResults.forEach((customer: ICustomer, index: number) => {
@@ -139,15 +156,21 @@ export class GetCustomerCommand extends BaseCommand {
           throw new AppError('Invalid view type', 400);
       }
 
-      await this.sendResponse(context.phone, response);
+      context.responses.push({
+        success: true,
+        message: response
+      })
     } catch (error) {
       logger.error('Error getting customer details:', error);
-      await this.sendResponse(
-        context.phone,
-        error instanceof AppError
+      if(!context.responses){ 
+        context.responses = []
+      }
+      context.responses.push({
+        success: false,
+        message: error instanceof AppError
           ? error.message
           : '❌ There was an error processing your request. Please try again later.'
-      );
+      });
     }
   }
 } 

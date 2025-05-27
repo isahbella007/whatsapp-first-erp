@@ -25,6 +25,11 @@ export class AddCustomerCommand extends BaseCommand {
         throw new Error('User ID is missing');
       }
 
+      // Add response to context for message handler
+      if (!context.responses) {
+        context.responses = [];
+      }
+
       // Use the pre-parsed data from command parser
       const params = context.params as CustomerParams;
       if (!params || !params.name) {
@@ -45,19 +50,22 @@ export class AddCustomerCommand extends BaseCommand {
       // Get all customers and send the updated list
       const customers = await customerService.getCustomers(context.user._id.toString());
       const responseMessage = customerService.formatCustomerList(customers);
-      
-      // await this.sendResponse(
-      //   context.phone,
-      //   responseMessage
-      // );
+      context.responses.push({
+        success: true,
+        message: responseMessage
+      });
+   
     } catch (error) {
       logger.error('Error in AddCustomerCommand:', error);
-      await this.sendResponse(
-        context.phone,
-        error instanceof AppError 
+      if(!context.responses){
+        context.responses = [];
+      }
+      context.responses.push({
+        success: false,
+        message: error instanceof AppError 
           ? error.message
           : "There was an error processing your request. Please try again later."
-      );
+      });
     }
   }
 } 

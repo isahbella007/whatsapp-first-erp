@@ -62,8 +62,7 @@ export class CommandParserService {
               query: { type: 'string' },
               category: { type: 'string' },
               type: { type: 'string' },
-              // Update params
-              updateType: { type: 'string', enum: ['quantity', 'price', 'both'] },
+              
               // Customer view params
               viewType: { type: 'string', enum: ['all', 'single', 'search'] },
               searchTerm: { type: 'string' },
@@ -111,7 +110,7 @@ For each command, follow these rules:
    - For "add_product": 
      * Extract productName (required, e.g., "Zobo Delight", "Fanta")
      * Extract price if mentioned (e.g., "1000 naira", "25k")
-     * Extract priceUnitOfMeasure if specified (e.g., "bottle", "crate", "kg")
+     * Extract priceUnitOfMeasure if specified (e.g., "bottle", "crate", "kg"). **Focus on the base unit of measure for the price, not necessarily the full descriptive phrase for the product.** For example, "A 50kg bag is 45,000 naira" should yield 'kg' or 'bag', not '50kg bag'.
      * Extract initialQuantity if provided (e.g., "5", "10")
      * Extract initialQuantityUnitOfMeasure if specified (e.g., "crates", "cans", "ctn")
      * Extract conversionFactorProvided if mentioned (e.g., "a crate is 12 bottles")
@@ -120,13 +119,17 @@ For each command, follow these rules:
        - unit2: second unit (e.g., "bottle")
        - unit2Quantity: quantity of second unit (e.g., 12)
    - For "delete_product": Extract product name
-   - For "update_product": 
-     * Extract product name
-     * If "update [product] [qty]", set qty and updateType="quantity"
-     * If "update [product] price [price]", set price and updateType="price"
-     * If "update [product] [qty] [price]", set both and updateType="both"
-     * If "update [product] qty [qty]", set qty and updateType="quantity"
-
+   - For "update_product":
+    * Extract productName (required, e.g., "Zobo Delight", "Fanta").
+    * Extract **quantity** if mentioned, representing the amount to be added or changed (e.g., "add 5", "increase by 10", "I bought 5 crates"). Map this to 'initialQuantity'.
+        - Also extract initialQuantityUnitOfMeasure if specified (e.g., "crates", "packs").
+    * Extract **price** if mentioned, representing the new selling price (e.g., "price is 10k", "costs 500 naira per piece"). Map this to 'price'.
+        - Also extract priceUnitOfMeasure if specified (e.g., "piece", "dozen", "sachet", "one", "unit"). **Prioritize recognizing words like "one", "each", "per" as indicating a single base unit.**
+    * Extract **conversionFactorProvided** if mentioned (e.g., "a crate is 12 bottles", "1kg is 1000 grams"). This applies to *any* unit conversion specified, whether for stock or for price context.
+        - Ensure to extract 'unit1', 'unit1Quantity', 'unit2', 'unit2Quantity' correctly.
+    * This intent should activate for phrases like: "update [product]", "change [product] price", "add stock to [product]", "record purchase of [product]", "I bought [quantity] of [product]".
+    * Do not set an updateType parameter. Instead, rely on the presence of initialQuantity, price, and conversionFactorProvided to indicate what needs updating. Your backend addProduct function is designed to handle this.
+    
 2. Customer Commands:
    - For "add_customer": 
      * Extract full name (can be multiple words)
@@ -234,54 +237,134 @@ Your output must be a valid JSON array of command objects, each with an intent a
       },
       
       {
-        input: 'update zobo 15 1500',
+        input: 'update Zobo price to 1500 naira per bottle',
         output: [
           {
             intent: 'update_product',
-            params: { 
-              name: 'zobo',
-              qty: 15,
+            params: {
+              productName: 'Zobo',
               price: 1500,
-              updateType: 'both'
+              priceUnitOfMeasure: 'bottle'
             }
           }
         ]
       },
       {
-        input: 'update zobo price 1500',
+        input: 'For Indomie, the price per pack is 150. I also bought 5 cartons.',
         output: [
           {
             intent: 'update_product',
-            params: { 
-              name: 'zobo',
-              price: 1500,
-              updateType: 'price'
+            params: {
+              productName: 'Indomie',
+              price: 150,
+              priceUnitOfMeasure: 'pack',
+              initialQuantity: 5,
+              initialQuantityUnitOfMeasure: 'cartons'
             }
           }
         ]
       },
       {
-        input: 'update zobo 15',
+        input: 'Change Yam price to 800.',
         output: [
           {
             intent: 'update_product',
-            params: { 
-              name: 'zobo',
-              qty: 15,
-              updateType: 'quantity'
+            params: {
+              productName: 'Yam',
+              price: 800,
+              priceUnitOfMeasure: null // LLM might not find a unit, that's okay
             }
           }
         ]
       },
       {
-        input: 'update zobo qty 15',
+        input: 'Increase stock of bread by 10 loaves.',
         output: [
           {
             intent: 'update_product',
-            params: { 
-              name: 'zobo',
-              qty: 15,
-              updateType: 'quantity'
+            params: {
+              productName: 'bread',
+              initialQuantity: 10,
+              initialQuantityUnitOfMeasure: 'loaves'
+            }
+          }
+        ]
+      },
+      {
+        input: 'Set a dozen of eggs to 2500 naira. A dozen is 12 pieces.',
+        output: [
+          {
+            intent: 'update_product',
+            params: {
+              productName: 'eggs',
+              price: 2500,
+              priceUnitOfMeasure: 'dozen',
+              conversionFactorProvided: {
+                unit1: 'dozen',
+                unit1Quantity: 1,
+                unit2: 'piece',
+                unit2Quantity: 12
+              }
+            }
+          }
+        ]
+      },
+      {
+        input: 'I now sell milk for 300 naira. I got 5 cartons today.',
+        output: [
+          {
+            intent: 'update_product',
+            params: {
+              productName: 'milk',
+              price: 300,
+              priceUnitOfMeasure: null, // If user doesn't specify 'per bottle', LLM might leave it null. Your backend handles this.
+              initialQuantity: 5,
+              initialQuantityUnitOfMeasure: 'cartons'
+            }
+          }
+        ]
+      },
+      {
+        input: 'Add 15 bags of cement.',
+        output: [
+          {
+            intent: 'update_product',
+            params: {
+              productName: 'cement',
+              initialQuantity: 15,
+              initialQuantityUnitOfMeasure: 'bags'
+            }
+          }
+        ]
+      },
+      {
+        input: 'The cost of Pure water is now 200 naira per sachet.',
+        output: [
+          {
+            intent: 'update_product',
+            params: {
+              productName: 'Pure water',
+              price: 200,
+              priceUnitOfMeasure: 'sachet'
+            }
+          }
+        ]
+      },
+      {
+        input: 'I have 50 packs of biscuits. One carton is 10 packs.',
+        output: [
+          {
+            intent: 'update_product',
+            params: {
+              productName: 'biscuits',
+              initialQuantity: 50,
+              initialQuantityUnitOfMeasure: 'packs',
+              conversionFactorProvided: {
+                unit1: 'carton',
+                unit1Quantity: 1,
+                unit2: 'pack',
+                unit2Quantity: 10
+              }
             }
           }
         ]
@@ -399,11 +482,28 @@ Your output must be a valid JSON array of command objects, each with an intent a
     const result = await this.geminiService.parseCommand<ParsedCommand>(text, schema, prompt, examples);
     
     if (result.success && result.data) {
-      // Sort commands to ensure record_sale is always last
+      const executionOrder = [
+        'add_product',
+        'update_product',
+        'delete_product',
+        'add_customer',
+        'delete_customer',
+        'record_sale',
+        'get_customer',
+        'check_stock'
+      ];
+    
       result.data.sort((a, b) => {
-        if (a.intent === 'record_sale') return 1;
-        if (b.intent === 'record_sale') return -1;
-        return 0;
+        const indexA = executionOrder.indexOf(a.intent);
+        const indexB = executionOrder.indexOf(b.intent);
+    
+        // If an intent isn't in our defined order, treat it as lower priority (push to end)
+        // Or, you could throw an error if an unknown intent is parsed.
+        if (indexA === -1 && indexB === -1) return 0; // Both unknown, maintain original order
+        if (indexA === -1) return 1; // 'a' is unknown, push to end
+        if (indexB === -1) return -1; // 'b' is unknown, 'a' comes before 'b'
+    
+        return indexA - indexB; // Sort by their index in the defined order
       });
     }
 

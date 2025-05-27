@@ -58,7 +58,7 @@ export class MessageHandlerService {
     const responseMessage = responseGeneratorService.generateConsolidatedResponse(context);
 
     logger.error('The final response is', responseMessage)
-    await twilioService.sendTextMessage(phone, responseMessage);
+    // await twilioService.sendTextMessage(phone, responseMessage);
   }
 }
 

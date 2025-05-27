@@ -71,7 +71,7 @@ export interface IInventoryV2 extends Document {
   name: string;
   description?: string;
   category: string;
-  baseUnitOfMeasure?: 'bottle' | 'piece' | 'kg' | 'gram' | 'liter' | 'ml' | 'box' | 'crate' | 'dozen' | 'pack' | 'bag' | 'unit' | 'meter' | 'cm';
+  baseUnitOfMeasure?: 'bottle' | 'piece' | 'kg' | 'gram' | 'liter' | 'ml' | 'box' | 'crate' | 'dozen' | 'pack' | 'bag' | 'unit' | 'meter' | 'cm' | 'one';
   standardSellingPricePerBaseUnit?: number;
   currentStockInBaseUnits: number;
   alternativeUnits?: Array<{

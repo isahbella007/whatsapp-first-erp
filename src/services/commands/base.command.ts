@@ -9,7 +9,7 @@ export abstract class BaseCommand implements Command {
   abstract description: string;
   abstract examples: string[];
   
-  abstract execute(context: CommandContext): Promise<void>;
+  abstract execute(context: CommandContext): Promise<any>;
   
   matches(command: string): boolean {
     // Default implementation to be overridden by subclasses
