@@ -14,6 +14,12 @@ const mockInventory = [
         user: new mongoose.Types.ObjectId("682447c1a8185e370ac224e0"),
         name: "carton of indomie",
         price: 10000
+    },
+    {
+        _id: new mongoose.Types.ObjectId("682e2076afd2ecfc0ff6fe6c"),
+        user: new mongoose.Types.ObjectId("682447c1a8185e370ac224e0"),
+        name: "salt",
+        price: 10000
     }
 ];
 
@@ -22,7 +28,8 @@ import newInventoryService from "../../services/newInventory.service";
 (newInventoryService.getProducts as any) = async () => mockInventory;
 
 const testCases = [
-    "cartons of indomie"
+    "cartons of indomie", 
+    "pack of salt"
 ];
 
 async function runTests() {

@@ -32,7 +32,7 @@ export async function findSimilarProducts(
     // Get all products for the user
     const allProducts = await newInventoryService.getProducts(userId);
 
-    logger.info(`Searching for matches for "${searchText}" in ${allProducts.length} products`);
+    // logger.info(`Searching for matches for "${searchText}" in ${allProducts.length} products`);
     if (allProducts.length === 0) {
       return [];
     }
@@ -148,12 +148,6 @@ Example:`;
   }
 }
 
-/**
- * Get the best matching product from user's inventory
- * @param userId Business owner's user ID
- * @param searchText User's input text to match against products
- * @returns The best matching product with confidence level, or null if no good matches
- */
 export async function getBestProductMatch(
   userId: string,
   searchText: string
@@ -162,18 +156,21 @@ export async function getBestProductMatch(
 
   logger.info(`Best match search for "${searchText}": ${JSON.stringify(matches)}`);
   if (matches.length === 0) {
+    logger.warn(`getBestProductMatch: No matches found array was empty. Returning null.`);
     return null;
   }
 
   // Return the highest confidence match
   const bestMatch = matches[0];
+  logger.info(`getBestProductMatch: Highest confidence match for "${searchText}" is "${bestMatch.product.name}" with confidence ${bestMatch.confidence} (Type: ${typeof bestMatch.confidence})`);
 
   // Only return if confidence is high enough
   if (bestMatch.confidence < 0.5) {
-    logger.info(`Best match for "${searchText}" (${bestMatch.product.name}) has confidence ${bestMatch.confidence}, which is below 0.5 threshold. Returning null.`);
+    logger.warn(`getBestProductMatch: Confidence of ${bestMatch.confidence} is below the 0.5 threshold. Returning null.`);
     return null;
   }
 
+  logger.info(`getBestProductMatch: Confidence is sufficient. Returning product match to sales service.`);
   return {
     product: bestMatch.product,
     confidence: bestMatch.confidence

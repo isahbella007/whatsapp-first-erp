@@ -1,155 +1,156 @@
-import { ISale } from "../interfaces/sale.interface";
+import mongoose from "mongoose";
+import * as stringSimilarity from 'string-similarity';
+import { CommandContext } from "../interfaces/command.interface";
+import { ICustomer } from "../interfaces/customer.interface";
+import { IInventoryV2 } from "../interfaces/inventory.interface";
+import Customer from "../models/Customer";
+import Sale from "../models/Sale";
 import AppError from "../utils/errors/AppError";
 import logger from "../utils/logger";
-import { getBestProductMatch } from "../utils/productMatching";
 import { RecordSaleParams } from "./commands/sales/record-sale.command";
-import Sale from "../models/Sale";
-import inventoryService from "./inventory.service";
+import { ERROR_TYPES } from "../interfaces/error.interface";
+import { getBestProductMatch } from "../utils/productMatching";
 
-interface IncompleteAction {
-    productName: string;
-    reason: string;
+// Helper function for fuzzy matching customers, similar to getBestProductMatch
+async function getBestCustomerMatch(userId: string, customerName: string): Promise<{ customer: ICustomer; confidence: number } | null> {
+    const customers = await Customer.find({ user: userId });
+    if (customers.length === 0) {
+        return null;
+    }
+
+    const customerNames = customers.map(c => c.name);
+    const bestMatch = stringSimilarity.findBestMatch(customerName.toLowerCase(), customerNames.map(name => name.toLowerCase()));
+
+    logger.warn('Best customer match', JSON.stringify(bestMatch, null, 2) );
+    // Using a 70% confidence threshold to consider it a match
+    if (bestMatch.bestMatch.rating > 0.7) { 
+        const matchedCustomer = customers[bestMatch.bestMatchIndex];
+        return { customer: matchedCustomer, confidence: bestMatch.bestMatch.rating };
+    }
+
+    return null;
 }
 
 class SalesService {
-    // async recordSale(saleData: RecordSaleParams, userId: string): Promise<{ 
-    //     success: boolean; 
-    //     message: string;
-    //     sale?: ISale;
-    //     incompleteActions?: IncompleteAction[];
-    // }> {
-    //     try {
-    //         const incompleteActions: IncompleteAction[] = [];
-    //         const validItems = [];
+    async recordSale(context: CommandContext, saleData: RecordSaleParams): Promise<any> {
+        const { user } = context;
+        const userId = user._id as string;
+        const { customerNames, items, totalValue, amountPaid, notes } = saleData;
 
-    //         // First pass: Validate products exist and collect valid items
-    //         for (const item of saleData.items) {
-    //             // Validate quantity
-    //             if (!item.quantity || item.quantity <= 0) {
-    //                 incompleteActions.push({
-    //                     productName: item.productName,
-    //                     reason: `Invalid quantity: ${item.quantity}`
-    //                 });
-    //                 continue;
-    //             }
+        let clarificationRequests = [];
+        let processedCustomers: ICustomer[] = [];
+        let processedItems = [];
+        let calculatedTotalAmount = 0;
+        const productsToUpdate: IInventoryV2[] = [];
 
-    //             // Fuzzy match product
-    //             const fuzzySearchResult = await getBestProductMatch(userId, item.productName);
-    //             // logger.info(`Fuzzy search result: ${JSON.stringify(fuzzySearchResult)}`);
-    //             if (!fuzzySearchResult) {
-    //                 incompleteActions.push({
-    //                     productName: item.productName,
-    //                     reason: "Product not found in inventory"
-    //                 });
-    //                 continue;
-    //             }
+        // 1. --- Customer Lookup ---
+        if (customerNames && customerNames.length > 0) {
+            for (const name of customerNames) {
+                const customerMatch = await getBestCustomerMatch(userId, name);
+                if (customerMatch) {
+                    processedCustomers.push(customerMatch.customer);
+                } else {
+                    const prompt = `I couldn't find a customer named '${name}'. Please add them first or check the name for typos.`;
+                    clarificationRequests.push({ type: ERROR_TYPES.CUSTOMER_NOT_FOUND, customerName: name, prompt });
+                }
+            }
+        }
+        
+        // 2. --- Item Processing Loop ---
+        for (const item of items) {
+            if (!item.productName || !item.quantity) {
+                logger.warn('Skipping an item in sale due to missing name or quantity.', { item });
+                continue;
+            }
 
-    //             // Get inventory price
-    //             const inventoryPrice = fuzzySearchResult.product.price;
+            logger.info('------Getting best product match------');
+            const productMatch = await getBestProductMatch(userId, item.productName);
+            logger.info('------Product found------', JSON.stringify(productMatch, null, 2));
+            
+            
+            if (!productMatch) {
+                const prompt = `I can't record this sale because the product '${item.productName}' wasn't found in your inventory.`;
+                clarificationRequests.push({ type: ERROR_TYPES.PRODUCT_FOR_SALE_NOT_FOUND, productName: item.productName, prompt });
+                continue;
+            }
+            
+            const product = productMatch.product;
+            
 
-    //             // Handle price scenarios
-    //             let pricePerUnit = item.pricePerUnit;
-    //             let priceSource = 'provided';
+            if (product.currentStockInBaseUnits < item.quantity) {
+                const prompt = `You can't sell ${item.quantity} ${product.baseUnitOfMeasure}(s) of ${product.name} because you only have ${product.currentStockInBaseUnits} in stock.`;
+                clarificationRequests.push({ type: ERROR_TYPES.INSUFFICIENT_STOCK, productName: product.name, prompt });
+                continue;
+            }
 
-    //             if (pricePerUnit === null) {
-    //                 if (saleData.totalValue === null) {
-    //                     // If no totalValue provided, we need prices for all items
-    //                     incompleteActions.push({
-    //                         productName: item.productName,
-    //                         reason: "Price not provided and total value not specified"
-    //                     });
-    //                     continue;
-    //                 } else {
-    //                     // If totalValue provided, use inventory price
-    //                     pricePerUnit = inventoryPrice;
-    //                     priceSource = 'inventory';
-    //                 }
-    //             }
+            let pricePerUnit = item.pricePerUnit ?? product.standardSellingPricePerBaseUnit;
+            if (pricePerUnit === null || pricePerUnit === undefined) {
+                const prompt = `The price for '${product.name}' was not specified and no default price is set.`;
+                clarificationRequests.push({ type: ERROR_TYPES.SELLING_PRICE_NOT_FOUND, productName: product.name, prompt });
+                continue;
+            }
 
-    //             // Validate price
-    //             if (pricePerUnit <= 0) {
-    //                 incompleteActions.push({
-    //                     productName: item.productName,
-    //                     reason: `Invalid price: ${pricePerUnit}`
-    //                 });
-    //                 continue;
-    //             }
+            const itemTotal = pricePerUnit * item.quantity;
+            calculatedTotalAmount += itemTotal;
+            
+            product.currentStockInBaseUnits -= item.quantity;
+            productsToUpdate.push(product);
 
-    //             validItems.push({
-    //                 product: fuzzySearchResult.product._id,
-    //                 quantity: item.quantity,
-    //                 price: pricePerUnit,
-    //                 total: item.quantity * pricePerUnit,
-    //                 priceSource
-    //             });
-    //         }
+            processedItems.push({
+                product: product._id,
+                quantity: item.quantity,
+                pricePerUnit: pricePerUnit,
+                total: itemTotal,
+            });
+        }
 
-    //         // If no valid items, return early
-    //         if (validItems.length === 0) {
-    //             return {
-    //                 success: false,
-    //                 message: "No valid items to record in the sale",
-    //                 incompleteActions
-    //             };
-    //         }
+        if (clarificationRequests.length > 0) {
+            return {
+                success: false,
+                needsClarification: true,
+                clarificationRequests,
+                message: clarificationRequests.map(r => r.prompt).join('\n')
+            };
+        }
 
-    //         // Calculate total amount
-    //         const totalAmount = saleData.totalValue ?? 
-    //             validItems.reduce((sum, item) => sum + item.total, 0);
+        // 3. --- Finalize and Save (Transaction) ---
+        const finalTotalAmount = totalValue ?? calculatedTotalAmount;
+        const finalAmountPaid = amountPaid ?? finalTotalAmount; // Assume full payment if not specified
 
-    //         // Create sale record if we have valid items
-    //         const sale = await Sale.create({
-    //             business: userId,
-    //             items: validItems,
-    //             totalAmount,
-    //             notes: saleData.notes,
-    //             metadata: {
-    //                 customerName: saleData.customerName,
-    //                 status: saleData.status,
-    //                 amountPaid: saleData.amountPaid
-    //             }
-    //         });
+        const session = await mongoose.startSession();
+        session.startTransaction();
+        try {
+            const newSale = new Sale({
+                user: userId,
+                customers: processedCustomers.map(c => c._id),
+                items: processedItems,
+                totalAmount: finalTotalAmount,
+                amountPaid: finalAmountPaid,
+                status: finalAmountPaid >= finalTotalAmount ? 'complete' : 'incomplete',
+                notes: notes,
+            });
 
-    //         // Construct response message
-    //         let message = `I've recorded the sale of ${validItems.length} item${validItems.length > 1 ? 's' : ''}.`;
+            await newSale.save({ session });
 
-    //         if (incompleteActions.length > 0) {
-    //             message += " However, I couldn't process the following items:\n";
-    //             incompleteActions.forEach(action => {
-    //                 message += `- ${action.productName}: ${action.reason}\n`;
-    //             });
+            for (const product of productsToUpdate) {
+                await product.save({ session });
+            }
 
-    //             // Add helpful suggestion for price-related issues
-    //             const priceIssues = incompleteActions.filter(a => 
-    //                 a.reason.includes("Price not provided") || 
-    //                 a.reason.includes("Invalid price")
-    //             );
-                
-    //             if (priceIssues.length > 0) {
-    //                 message += "\nPlease provide prices for these items. For example:\n";
-    //                 message += priceIssues?.map(item => 
-    //                     `"${item.productName} was [price] per unit"`
-    //                 ).join(" and ");
-    //             }
-    //         }
-
-    //         return {
-    //             success: true,
-    //             message,
-    //             sale,
-    //             incompleteActions: incompleteActions.length > 0 ? incompleteActions : undefined
-    //         };
-
-    //     } catch (error: any) {
-    //         logger.error('Error recording sale:', error);
-    //         throw new AppError(
-    //             `Failed to record sale: ${error.message}`,
-    //             error.statusCode ?? 500
-    //         );
-    //     }
-    // }
+            await session.commitTransaction();
+            
+            return {
+                success: true,
+                message: `✅ Sale recorded successfully. Your stock has been updated.`,
+                sale: newSale
+            };
+        } catch (error) {
+            await session.abortTransaction();
+            logger.error('Transaction aborted! Failed to record sale.', { error });
+            throw new AppError('A database error occurred during the sale transaction.', 500);
+        } finally {
+            session.endSession();
+        }
+    }
 }
 
 export default new SalesService();
-
-

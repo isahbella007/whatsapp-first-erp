@@ -33,10 +33,11 @@ export interface ISaleItem {
  * Sale interface
  */
 export interface ISale extends Document {
-  business: Types.ObjectId;
-  customer?: Types.ObjectId;
+  user: Types.ObjectId;
+  customers?: Types.ObjectId[];
   items: ISaleItem[];
   totalAmount: number;
+  amountPaid: number;
   status: SaleStatus;
   paymentMethod: PaymentMethod;
   notes?: string;

@@ -73,8 +73,12 @@ export class CommandParserService {
               },
 
               // --- Sale specific params ---
-              customerName: { type: 'string', nullable: true }, // Customer name extracted from sale message
-                items: { // Array of items in this sale event
+              customerNames: { // Renamed from customerName to customerNames and changed to array
+                type: 'array',
+                items: { type: 'string' },
+                nullable: true 
+              }, 
+              items: { // Array of items in this sale event
                 type: 'array',
                 items: {
                   type: 'object',
@@ -162,7 +166,7 @@ For each command, follow these rules:
       * Identify individual items sold within the sale event. Each item needs a productName and quantity.
       * Extract quantity (numbers like 5, 4) and the associated productName (words near the quantity). Handle plurals.
       * Extract any price mentioned for an item (e.g., "at 9k", "for 900 naira"). Convert price to a number. Assign it to pricePerUnit. Note that the price might be per unit even if not explicitly stated "each". Use context to infer if 8k is per unit or total for the items it follows. **Prioritize per-unit if unclear, or extract the phrase if complex.** Let's assume for now you want the LLM to give the number price, but you'll handle the 'each vs total' ambiguity in your backend *after* parsing.
-      * If a customer is mentioned (near "to", "for", "for customer"), extract their name and assign to customerName.
+      * If one or more customers are mentioned (e.g., "sold to Agnes", "for Ben and Carter"), extract their names into a 'customerNames' array. Split names on "and", "&", or commas.
       * If a total sale value is mentioned (e.g., "for 70 thousand naira"), extract the number and assign to totalValue.
       * If an amount paid is mentioned (e.g., "paid me 25000 naira"), extract the number and assign to amountPaid.
       * Extract any trailing notes about payment status or conditions and assign to notes.
@@ -452,13 +456,13 @@ Your output must be a valid JSON array of command objects, each with an intent a
                 }
               ],
               "status": "complete"
-              // customerName, totalValue, amountPaid, notes would be null/undefined for this sale object
+              // customerNames, totalValue, amountPaid, notes would be null/undefined for this sale object
             }
           },
           {
             "intent": "record_sale",
             "params": {
-              "customerName": "agnes",
+              "customerNames": ["agnes"],
               "items": [
                 {
                   "productName": "shoes",
